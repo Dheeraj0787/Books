@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="GetAllFlow" doc:id="6586bf91-df7c-4274-ae7f-0e5656a39558" initialState="started">
+		<db:select doc:name="Select" doc:id="51a5bfdc-e3dc-4df8-82a6-7072fbd286e0" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from bookDetails]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="bab99fd6-59fe-4c4d-88b5-477e72914df2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	author: payload01.author default "",
+	price: payload01.price default 0,
+	genre: payload01.genre default "",
+	bookName: payload01.bookName default "",
+	publicationDate: payload01.publicationDate as String default "",
+	bookId: payload01.bookId
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="GetIDFlow" doc:id="22019195-cc22-4bd7-b279-9085e998da3f" >
+		<db:query-single doc:name="Query single" doc:id="cdd71d70-f0b2-42cf-8897-0935b5ec6fd7" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from bookDetails where bookId = :a]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	a:vars.bookId
+}]]]></db:input-parameters>
+		</db:query-single>
+		<ee:transform doc:name="Transform Message" doc:id="d73cc8d7-a606-42cf-9af7-719b8d090cb8" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	author: payload.author default "",
+	price: payload.price default 0,
+	genre: payload.genre default "",
+	bookName: payload.bookName default "",
+	publicationDate: payload.publicationDate as String default "",
+	bookId: payload.bookId
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="DeleteFlow" doc:id="a4e9292b-e7d1-4072-99b9-3d9b34e10f3f">
+		<db:delete doc:name="Delete" doc:id="1582546e-f490-4dc7-8d2f-a3fa5264da40" config-ref="Database_Config">
+			<db:sql ><![CDATA[delete from bookDetails where bookId = :b]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	b:vars.bookId
+}]]]></db:input-parameters>
+		</db:delete>
+		<ee:transform doc:name="Transform Message" doc:id="9858377b-a3ce-405b-95e5-fe3b264319b7" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Deleted Successfully"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<sub-flow name="variableSub_Flow" doc:id="e1bff6a5-23f0-471e-a5f0-970c3b8ee0f9" >
+		<set-variable value="#[message.payload.name]" doc:name="name" doc:id="3bf8640b-06cf-44ee-b73a-16aa78aead0d" variableName="name"/>
+		<set-variable value="#[message.payload.author]" doc:name="author" doc:id="88450f26-109c-4859-827e-dcb999dd7dcc" variableName="author"/>
+		<set-variable value="#[message.payload.genre]" doc:name="genre" doc:id="261c38a9-af24-4135-ae11-8994bb70276f" variableName="genre"/>
+		<set-variable value="#[message.payload.publicationDate]" doc:name="publicationDate" doc:id="364a7e85-1aef-4167-adf0-8c962792929b" variableName="publicationDate"/>
+		<set-variable value="#[message.payload.price]" doc:name="price" doc:id="5a3bec71-612f-4e81-9940-b2cde694531e" variableName="price"/>
+	</sub-flow>
+	<flow name="postFlow" doc:id="48c39c99-5ff6-4e3e-bd63-269e8c306432" >
+		<db:query-single doc:name="Query single" doc:id="5098fa27-5b14-4613-996c-458e51290e0f" config-ref="Database_Config">
+			<db:sql ><![CDATA[select max(bookId) from bookDetails]]></db:sql>
+		</db:query-single>
+		<set-variable value='#["B"++((payload."max(bookId)")[1 to 3] as Number + 1 )]' doc:name="bookId" doc:id="168d5dd5-de9d-4e77-a3d1-765fbc627ec3" variableName="bookId"/>
+		<flow-ref doc:name="Flow Reference" doc:id="204d4420-87c0-4bf6-8117-b90288709df4" name="variableSub_Flow" />
+		<db:insert doc:name="Insert" doc:id="f1e69592-2fef-4314-aab1-1bb7c34eab2e" config-ref="Database_Config">
+			<db:sql ><![CDATA[insert into bookDetails(bookId,bookName,author,genre,publicationDate,price) values(:c, :d, :e, :f, :g, :h)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	c:vars.bookId,
+	d:vars.name,
+	e:vars.author,
+	f:vars.genre,
+	g:vars.publicationDate,
+	h:vars.price
+	
+}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="0371ad93-4b27-41c3-a594-29a1c2e56ca2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Updated Successfully"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

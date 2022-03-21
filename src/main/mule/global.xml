@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="booksapi-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="${http.port}" />
+    </http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="d6d78ac6-1d1a-40ea-8da1-1a8cd4ce3243" >
+		<db:my-sql-connection host="${db.host}" port="${db.port}" user="${db.user}" password="${db.password}" database="${db.database}"/>
+	</db:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="be5cfcaa-6a5e-419e-9907-ee8c11d2c2db" file="books-DEV.yaml" />
+	<configuration doc:name="Configuration" doc:id="effd36cf-0972-420b-bc55-2011e3f089a4" defaultErrorHandler-ref="globalError_Handler" />
+	<error-handler name="globalError_Handler" doc:id="45195d2c-1d35-4df6-8b39-42268c6ab1e5" >
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="4fdc1b6c-d601-4c35-a344-e2d4e206bb51" type="ANY">
+			<ee:transform doc:name="error.description" doc:id="9228ec9b-74ce-44db-9c64-d47d3a9d074d" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "error.description"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-continue>
+	</error-handler>
+	<error-handler name="globalError_Handler1" doc:id="54c29e8f-8b92-4c5c-b40e-acc265ea6fb4" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="f8c34ffe-7f5c-4468-9bae-3e6aa5e6e84d" type="ANY">
+			<ee:transform doc:name="Transform Message" doc:id="19aadc15-b78b-43d5-aaf8-63dcbb2cfd27" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "error.description"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+	</error-handler>
+	
+</mule>
